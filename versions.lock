@@ -1,0 +1,19 @@
+# Pinned tool versions for this harness. bootstrap.sh installs exactly these.
+# Sourced as shell: KEY=value only, no spaces around '='.
+#
+# To upgrade a tool: change its version here, update its checksums (for
+# github-mcp-server: the release's github-mcp-server_<ver>_checksums.txt),
+# run ./bootstrap.sh, then ./scripts/doctor.sh. Commit the result.
+
+# Omnigent meta-harness (PyPI: omnigent). Requires Python 3.12+.
+OMNIGENT_VERSION=0.21.0
+
+# Jira Cloud MCP server (PyPI: mcp-atlassian, github.com/sooperset/mcp-atlassian).
+MCP_ATLASSIAN_VERSION=0.24.3
+
+# Official GitHub MCP server (github.com/github/github-mcp-server), prebuilt binary.
+GITHUB_MCP_VERSION=2.1.0
+GITHUB_MCP_SHA256_Darwin_arm64=3fb2936c33416693a8b268442ab9b1e838d4fbb8c2a6813d8a77f87c3009ced6
+GITHUB_MCP_SHA256_Darwin_x86_64=3c4b023b0d90bdc8f3a2ab63307ff55d293e98c27e733008eed0fa35aca55499
+GITHUB_MCP_SHA256_Linux_arm64=34d5a268f65cd1e9b7107fa976f3571ccd575f9df00cec489fec79a039923a22
+GITHUB_MCP_SHA256_Linux_x86_64=a442f9db287cea01008bcb55fe6bc0292270301046c3edbd1a8b22d6e4157b2b

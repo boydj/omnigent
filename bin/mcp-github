@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Launch the official GitHub MCP server over stdio.
+#
+# Omnigent runs this (see agents/dev/tools/mcp/github.yaml). It reads
+# non-secret settings from ~/.config/harness/harness.env and the token from
+# `harness-secret`, so neither lives in the agent YAML. stdout is the MCP
+# transport: everything else must go to stderr.
+set -euo pipefail
+
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/harness"
+ENV_FILE="${HARNESS_ENV_FILE:-$CONFIG_DIR/harness.env}"
+die() { printf 'mcp-github: %s\n' "$*" >&2; exit 1; }
+
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "$ENV_FILE"
+  set +a
+fi
+
+command -v github-mcp-server >/dev/null 2>&1 \
+  || die "github-mcp-server not on PATH. Run ./bootstrap.sh from the harness repo."
+
+GITHUB_PERSONAL_ACCESS_TOKEN="$(harness-secret get GITHUB_PERSONAL_ACCESS_TOKEN)" \
+  || die "no GitHub token. Run: harness-secret set GITHUB_PERSONAL_ACCESS_TOKEN"
+export GITHUB_PERSONAL_ACCESS_TOKEN
+export GITHUB_TOOLSETS="${GITHUB_TOOLSETS:-context,repos,issues,pull_requests,actions,users}"
+export GITHUB_READ_ONLY="${GITHUB_READ_ONLY:-0}"
+export GITHUB_LOCKDOWN_MODE="${GITHUB_LOCKDOWN_MODE:-1}"
+export GITHUB_EXCLUDE_TOOLS="${GITHUB_EXCLUDE_TOOLS-merge_pull_request,delete_file,create_repository,fork_repository}"
+if [ -n "${GITHUB_HOST:-}" ]; then export GITHUB_HOST; fi
+
+exec github-mcp-server stdio

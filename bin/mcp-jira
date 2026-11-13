@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Launch the Jira Cloud MCP server (mcp-atlassian, Jira only) over stdio.
+#
+# Omnigent runs this (see agents/dev/tools/mcp/jira.yaml). It reads
+# non-secret settings from ~/.config/harness/harness.env and the API token
+# from `harness-secret`, so neither lives in the agent YAML. stdout is the
+# MCP transport: everything else must go to stderr.
+set -euo pipefail
+
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/harness"
+ENV_FILE="${HARNESS_ENV_FILE:-$CONFIG_DIR/harness.env}"
+die() { printf 'mcp-jira: %s\n' "$*" >&2; exit 1; }
+
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "$ENV_FILE"
+  set +a
+fi
+
+command -v mcp-atlassian >/dev/null 2>&1 \
+  || die "mcp-atlassian not on PATH. Run ./bootstrap.sh from the harness repo."
+case "${JIRA_URL:-}" in
+  ''|*your-site*) die "set JIRA_URL in $ENV_FILE" ;;
+esac
+case "${JIRA_USERNAME:-}" in
+  ''|you@example.com) die "set JIRA_USERNAME in $ENV_FILE" ;;
+esac
+
+JIRA_API_TOKEN="$(harness-secret get JIRA_API_TOKEN)" \
+  || die "no Jira token. Run: harness-secret set JIRA_API_TOKEN"
+export JIRA_URL JIRA_USERNAME JIRA_API_TOKEN
+
+# Jira only: make sure no Confluence settings leak in from the environment.
+unset CONFLUENCE_URL CONFLUENCE_USERNAME CONFLUENCE_API_TOKEN CONFLUENCE_PERSONAL_TOKEN
+
+export TOOLSETS="${JIRA_TOOLSETS:-default,jira_agile}"
+export READ_ONLY_MODE="${JIRA_READ_ONLY:-false}"
+if [ -n "${JIRA_PROJECTS_FILTER:-}" ]; then
+  export JIRA_PROJECTS_FILTER
+else
+  unset JIRA_PROJECTS_FILTER
+fi
+
+exec mcp-atlassian --transport stdio

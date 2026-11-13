@@ -1,0 +1,15 @@
+# GitHub MCP server (official github/github-mcp-server, run locally).
+#
+# Omnigent auto-discovers every tools/mcp/*.yaml next to the agent's
+# config.yaml; nothing needs to reference this file.
+#
+# No token or ${VAR} here on purpose: `omnigent run` / `omnigent agent add`
+# resolve ${VAR} from your shell INTO the uploaded agent bundle, which would
+# copy the token into Omnigent's database. The wrapper fetches it at launch.
+# Toolsets, read-only and lockdown mode are set in ~/.config/harness/harness.env.
+name: github
+description: >-
+  GitHub repositories, issues, pull requests, Actions runs and users, through
+  the official GitHub MCP server.
+transport: stdio
+command: mcp-github

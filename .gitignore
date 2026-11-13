@@ -1,0 +1,10 @@
+# Never commit local settings or secrets. Real values live outside the repo
+# (~/.config/harness/), but guard against copies landing here by mistake.
+.env
+.env.*
+*.env
+!config/*.env.example
+secrets/
+
+# Project-local Omnigent state, if you ever run `omnigent config set` here.
+.omnigent/
