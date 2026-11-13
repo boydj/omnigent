@@ -1,0 +1,2 @@
+# Sample bank exports are byte-exact test fixtures (BOM, CRLF). Never normalize them.
+sample-data/*.csv -text

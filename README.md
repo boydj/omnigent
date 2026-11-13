@@ -164,6 +164,15 @@ the kanban**, and Omnigent provides the agent orchestration around it:
 | Review the diff | A cross-vendor AI review before the PR exists, then yours on GitHub. Omnigent can also share a live session with a teammate |
 | Cards trigger work automatically | Omnigent **Automations** → *Jira tickets* template: start a session for each new ticket matching a JQL-style filter, or on "assignee changed to me". It is set up in the web UI (see below) |
 
+### A project to test on
+
+[`sandbox/`](sandbox/README.md) has a small Python app with real,
+reproducible bugs, and a matching Jira backlog of 33 issues: epics, bugs,
+stories, sub-tasks, links, a sprint, a deliberately vague ticket and a
+prompt-injection probe. One script loads the backlog into Jira, and another
+publishes the app as `<you>/ledger-sandbox`. The sandbox README lists
+scenarios to run on both agents and has a scorecard for comparing them.
+
 ## How it fits together
 
 ```

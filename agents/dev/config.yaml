@@ -45,6 +45,7 @@ guardrails:
         read_all: true
         write_repos:
           - boydj/harness
+          - boydj/ledger-sandbox   # sandbox/create-repo.sh
 
     # Spend guard for API-key or gateway credentials: asks at $5, stops at
     # $10 per session. (Subscription logins may not report a cost.)
