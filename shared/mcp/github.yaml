@@ -14,4 +14,9 @@ description: >-
   GitHub repositories, issues, pull requests, Actions runs and users, through
   the official GitHub MCP server.
 transport: stdio
-command: mcp-github
+# Launched by Omnigent's runner with a minimal environment (only HOME, PATH,
+# USER, LOGNAME, SHELL, TERM), and PATH may not include ~/.local/bin when the
+# desktop app or a service started Omnigent. So don't rely on PATH: let the
+# shell expand $HOME at launch (Omnigent never expands `command`/`args`).
+command: /bin/sh
+args: ["-c", 'exec "$HOME/.local/bin/mcp-github"']

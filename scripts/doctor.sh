@@ -71,6 +71,25 @@ for server in github jira; do
   fi
 done
 
+echo "MCP servers as Omnigent starts them (minimal env, bare system PATH)"
+# The runner gives stdio MCP servers only HOME, PATH, USER, LOGNAME, SHELL and
+# TERM, and when the desktop app or a service started Omnigent, PATH lacks
+# ~/.local/bin. Reproduce the worst case with Omnigent's own MCP client.
+omni_python="$(dirname "$(readlink -f "$(command -v omnigent)")")/python"
+omni_out="$(cd "$REPO_DIR" && env -i HOME="$HOME" USER="${USER:-$(id -un)}" LOGNAME="${LOGNAME:-$(id -un)}" \
+  SHELL="${SHELL:-/bin/sh}" TERM=dumb PATH=/usr/bin:/bin:/usr/sbin:/sbin \
+  "$omni_python" scripts/check-omnigent-mcp.py agents/dev 2>&1)"
+if ! printf '%s\n' "$omni_out" | grep -q '^RESULT '; then
+  fail "could not run the Omnigent MCP check"
+  printf '%s\n' "$omni_out" | tail -5 | sed 's/^/       /'
+fi
+while read -r _ name state rest; do
+  if [ "$state" = ok ]; then pass "$name: started by Omnigent's client, $rest tools"
+  else fail "$name: Omnigent could not start it: $rest"; fi
+done <<EOF
+$(printf '%s\n' "$omni_out" | grep '^RESULT ')
+EOF
+
 echo "Live API checks (does the token actually work?)"
 if token="$(harness-secret get GITHUB_PERSONAL_ACCESS_TOKEN 2>/dev/null)"; then
   login="$(curl -fsS -H "Authorization: Bearer $token" https://api.github.com/user 2>/dev/null \

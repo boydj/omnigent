@@ -151,6 +151,41 @@ Codex sub-agents). The Claude reviewer runs in Claude's default permission
 mode, so anything beyond reading asks you first. Neither reviewer can write
 to GitHub (`write_repos: []`).
 
+### Troubleshooting: "the MCP servers aren't there"
+
+Check, in order:
+
+1. **Are you in a `dev` or `dev-codex` session?** The GitHub and Jira
+   servers belong to these agents. A plain `omnigent claude`, `omnigent
+   codex`, or a New Chat with the default agent doesn't have them.
+2. **Are you looking in the right place?** Inside the Claude Code or Codex
+   terminal, `/mcp` shows *one* server, `omnigent`. Omnigent relays the
+   agent's servers through it, so the tools appear as
+   `mcp__omnigent__github__…` and `mcp__omnigent__jira__…`, not as separate
+   `github` and `jira` servers. Quick test: ask the agent *"list your github
+   and jira tools"*.
+3. **Did you reinstall after pulling changes?** Run `./bootstrap.sh`, which
+   re-adds the agents, then start a **new** session. Running sessions keep
+   the configuration they started with.
+4. **Do they start the way Omnigent starts them?** Run
+   `./scripts/doctor.sh` and look at *"MCP servers as Omnigent starts
+   them"*. It launches both servers through Omnigent's own MCP client, with
+   the minimal environment and bare system PATH a background-started
+   Omnigent gives them.
+5. **What did the runner say?** Each session's runner log records the
+   result, or the wrapper's error message:
+
+   ```bash
+   grep -h "MCP server '\|mcp-github:\|mcp-jira:" ~/.omnigent/logs/runner/*.log | tail -20
+   ```
+
+   Healthy output is `MCP server 'github': discovered 44 tool(s)` and the
+   same for `jira`.
+
+Behind a corporate proxy, set `HTTPS_PROXY` (and a CA bundle if needed) in
+`~/.config/harness/harness.env`. MCP servers don't inherit your shell's
+environment.
+
 ### Replacing Vibe Kanban
 
 Omnigent has no kanban board of its own. In this setup **the Jira board is

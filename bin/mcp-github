@@ -7,6 +7,11 @@
 # transport: everything else must go to stderr.
 set -euo pipefail
 
+# Omnigent may start us with a bare system PATH (launchd, systemd, login
+# items). Everything this harness installs lives in ~/.local/bin; Homebrew
+# dirs cover helpers like `gh` or `op` used by *_COMMAND secret overrides.
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/harness"
 ENV_FILE="${HARNESS_ENV_FILE:-$CONFIG_DIR/harness.env}"
 die() { printf 'mcp-github: %s\n' "$*" >&2; exit 1; }

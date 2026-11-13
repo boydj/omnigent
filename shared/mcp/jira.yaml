@@ -13,4 +13,9 @@ description: >-
   Jira Cloud issues, comments, transitions, boards and sprints, through the
   mcp-atlassian server.
 transport: stdio
-command: mcp-jira
+# Launched by Omnigent's runner with a minimal environment (only HOME, PATH,
+# USER, LOGNAME, SHELL, TERM), and PATH may not include ~/.local/bin when the
+# desktop app or a service started Omnigent. So don't rely on PATH: let the
+# shell expand $HOME at launch (Omnigent never expands `command`/`args`).
+command: /bin/sh
+args: ["-c", 'exec "$HOME/.local/bin/mcp-jira"']

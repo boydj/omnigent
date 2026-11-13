@@ -16,7 +16,11 @@
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
-BIN_DIR="${HARNESS_BIN_DIR:-$HOME/.local/bin}"
+# Fixed location: the agents' MCP definitions launch "$HOME/.local/bin/mcp-*"
+# so they work no matter what PATH Omnigent was started with.
+BIN_DIR="$HOME/.local/bin"
+# uv tool binaries (omnigent, mcp-atlassian) must land there too.
+export UV_TOOL_BIN_DIR="$BIN_DIR"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/harness"
 REGISTER_AGENT=1
 [ "${1:-}" = "--no-agent" ] && REGISTER_AGENT=0
