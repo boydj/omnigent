@@ -1,13 +1,12 @@
 spec_version: 1
 name: dev
 description: >-
-  Claude Code with GitHub and Jira Cloud MCP servers, for ticket-to-PR work:
-  pick up a Jira issue, branch, implement, open a PR, link it back.
+  Claude Code implements, Codex reviews. Jira ticket to GitHub PR with GitHub
+  and Jira Cloud MCP servers and a cross-vendor review before every PR.
 
 # Claude Code in its own terminal (TUI), mirrored to Omnigent's web UI.
-# To try the same agent on another harness, change one line, e.g.
-# harness: codex-native, or pass `--harness codex-native` to `omnigent run`.
-# No model is pinned: it uses the default you chose in `omnigent setup`.
+# No model is pinned: it uses your Claude default from `omnigent setup`.
+# agents/dev-codex is the mirror image (Codex implements, Claude reviews).
 executor:
   type: omnigent
   config:
@@ -17,36 +16,20 @@ os_env:
   type: caller_process
   cwd: .
 
-prompt: |
-  You are a software engineer working in the repository in your current
-  directory. Jira is the team's board; GitHub is where code lives.
+# Shared with dev-codex (symlink to shared/prompts/engineer.md).
+instructions: instructions.md
 
-  You have two MCP servers:
-  - `jira`: read and update Jira Cloud issues, comments, transitions,
-    boards and sprints.
-  - `github`: repositories, issues, pull requests and Actions runs.
-
-  When the user gives you a Jira issue key (like PROJ-123) or asks you to
-  pick up a ticket:
-  1. Read the issue, its comments and linked issues. Restate the acceptance
-     criteria in a sentence or two before you start.
-  2. Ask before transitioning the issue (e.g. to In Progress) or commenting
-     on it; the user may not want board changes during an evaluation.
-  3. Create a branch named `<KEY>-<short-kebab-summary>` from the default
-     branch. Prefix every commit message with the issue key.
-  4. Implement the change, then run the project's tests and linters for
-     what you touched.
-  5. Push the branch and open a pull request whose title starts with the
-     issue key and whose body summarizes the change and how you verified it.
-  6. Offer to comment the PR link on the Jira issue.
-
-  Never push to the default branch, force-push, or merge a pull request.
-  When unsure which repository a ticket belongs to, ask.
+# GitHub and Jira MCP servers come from tools/mcp/*.yaml (symlinks into
+# shared/mcp/). `agents` exposes agents/reviewer/ through sys_session_send.
+tools:
+  agents:
+    - reviewer
 
 # Guardrails. Policies check every tool call and allow it, block it, or
 # pause to ask you. They stack with server-wide and per-session policies.
 # In a config.yaml bundle they MUST sit under `guardrails.policies`; a
 # top-level `policies:` key is silently ignored here.
+# Keep this block identical in agents/dev-codex/config.yaml (doctor.sh checks).
 guardrails:
   # How long an "ask" waits for your answer (seconds) before it is denied.
   ask_timeout: 3600

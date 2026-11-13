@@ -1,0 +1,58 @@
+spec_version: 1
+name: dev-codex
+description: >-
+  Codex implements, Claude Code reviews. Jira ticket to GitHub PR with GitHub
+  and Jira Cloud MCP servers and a cross-vendor review before every PR.
+
+# Codex in its own terminal (TUI), mirrored to Omnigent's web UI, signed in
+# with your ChatGPT/Codex subscription. No model is pinned: it uses your
+# Codex default from `omnigent setup`. As a top-level interactive session,
+# Codex keeps its own approval prompts and sandbox.
+# agents/dev is the mirror image (Claude implements, Codex reviews).
+executor:
+  type: omnigent
+  config:
+    harness: codex-native
+
+os_env:
+  type: caller_process
+  cwd: .
+
+# Shared with dev (symlink to shared/prompts/engineer.md).
+instructions: instructions.md
+
+# GitHub and Jira MCP servers come from tools/mcp/*.yaml (symlinks into
+# shared/mcp/). `agents` exposes agents/reviewer/ through sys_session_send.
+tools:
+  agents:
+    - reviewer
+
+# Guardrails. Policies check every tool call and allow it, block it, or
+# pause to ask you. They stack with server-wide and per-session policies.
+# In a config.yaml bundle they MUST sit under `guardrails.policies`; a
+# top-level `policies:` key is silently ignored here.
+# Keep this block identical in agents/dev/config.yaml (doctor.sh checks).
+guardrails:
+  # How long an "ask" waits for your answer (seconds) before it is denied.
+  ask_timeout: 3600
+  policies:
+    # GitHub writes (MCP tools and git/gh shell commands) are allowed only on
+    # these repos. Reads are allowed everywhere. Deletes, force pushes and tag
+    # pushes are denied. Add a scratch repo here for home testing, and your
+    # team's repos when evaluating at work.
+    github_access:
+      type: function
+      handler: omnigent.policies.builtins.github.github_policy
+      factory_params:
+        read_all: true
+        write_repos:
+          - boydj/harness
+
+    # Spend guard for API-key or gateway credentials: asks at $5, stops at
+    # $10 per session. (Subscription logins may not report a cost.)
+    budget:
+      type: function
+      handler: omnigent.policies.builtins.cost.cost_budget
+      factory_params:
+        max_cost_usd: 10.00
+        ask_thresholds_usd: [5.00]

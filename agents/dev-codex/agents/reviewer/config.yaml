@@ -1,0 +1,32 @@
+spec_version: 1
+name: reviewer
+description: >-
+  Claude Code reviewer for the dev-codex agent: reads a diff snapshot and
+  reports blocking / non-blocking issues. Never edits.
+
+# Claude Code in its own terminal, signed in with your Claude subscription.
+# No model pinned.
+executor:
+  type: omnigent
+  config:
+    harness: claude-native
+    # Claude Code's normal mode: reads need no approval; edits and most shell
+    # commands ask you first (as cards in Omnigent's chat).
+    permission_mode: default
+
+os_env:
+  type: caller_process
+  cwd: .
+
+instructions: instructions.md
+
+guardrails:
+  ask_timeout: 3600
+  policies:
+    # No GitHub writes at all from the reviewer (empty write_repos).
+    github_readonly:
+      type: function
+      handler: omnigent.policies.builtins.github.github_policy
+      factory_params:
+        read_all: true
+        write_repos: []

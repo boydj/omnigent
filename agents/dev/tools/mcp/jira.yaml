@@ -1,5 +1,7 @@
 # Jira Cloud MCP server (sooperset/mcp-atlassian, Jira tools only, run locally).
 #
+# Source of truth, shared by every agent: scripts/sync-shared.sh copies it to
+# agents/*/tools/mcp/. Edit it here, never the copies.
 # Omnigent auto-discovers every tools/mcp/*.yaml next to the agent's
 # config.yaml; nothing needs to reference this file.
 #

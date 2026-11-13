@@ -6,12 +6,13 @@
 #
 # What it does:
 #   1. checks prerequisites (uv, git, node/npm, tmux; bwrap on Linux; claude)
-#   2. installs omnigent and mcp-atlassian at pinned versions (uv tool)
+#   2. installs omnigent and mcp-atlassian at pinned versions (uv tool), and
+#      the Codex CLI at its pinned version (npm -g)
 #   3. downloads github-mcp-server at the pinned version, verifies SHA-256
 #   4. links bin/* (harness-secret, mcp-github, mcp-jira) into ~/.local/bin
 #   5. creates ~/.config/harness/harness.env from the example (never overwrites)
 #   6. turns Omnigent telemetry off in ~/.omnigent/config.yaml
-#   7. installs agents/dev into Omnigent's session picker (omnigent agent add)
+#   7. installs agents/dev and agents/dev-codex into Omnigent's session picker
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -69,6 +70,18 @@ install_uv_tool() {  # name version
 install_uv_tool omnigent "$OMNIGENT_VERSION"
 install_uv_tool mcp-atlassian "$MCP_ATLASSIAN_VERSION"
 
+codex_installed="$(codex --version 2>/dev/null | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)"
+if [ "$codex_installed" = "$CODEX_VERSION" ]; then
+  say "Codex CLI $CODEX_VERSION already installed"
+else
+  say "Installing Codex CLI $CODEX_VERSION (was: ${codex_installed:-none})"
+  if ! npm install -g "@openai/codex@$CODEX_VERSION"; then
+    warn "npm could not install globally (prefix: $(npm config get prefix)). Either fix npm's"
+    warn "prefix (npm config set prefix ~/.local) and re-run, or install it yourself:"
+    warn "  npm install -g @openai/codex@$CODEX_VERSION"
+  fi
+fi
+
 # --- 3. github-mcp-server binary ---------------------------------------------
 gh_mcp_installed="$("$BIN_DIR/github-mcp-server" --version 2>/dev/null | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || true)"
 if [ "$gh_mcp_installed" = "$GITHUB_MCP_VERSION" ]; then
@@ -117,10 +130,15 @@ fi
 
 # --- 7. register the agent ---------------------------------------------------
 if [ "$REGISTER_AGENT" = 1 ]; then
-  say "Installing the dev agent into Omnigent (starts the local server if needed)"
-  if ! omnigent agent add "$REPO_DIR/agents/dev"; then
-    warn "omnigent agent add failed. Run it later: omnigent agent add $REPO_DIR/agents/dev"
-  fi
+  "$REPO_DIR/scripts/sync-shared.sh" --check \
+    || die "agents/ is out of sync with shared/. Run ./scripts/sync-shared.sh first."
+  for agent in "$REPO_DIR"/agents/*/; do
+    agent="${agent%/}"
+    say "Installing agent $(basename "$agent") into Omnigent (starts the local server if needed)"
+    if ! omnigent agent add "$agent"; then
+      warn "omnigent agent add failed. Run it later: omnigent agent add $agent"
+    fi
+  done
 fi
 
 cat <<EOF
@@ -129,6 +147,7 @@ Done. Next steps (first time on this machine):
   1. Edit $CONFIG_DIR/harness.env (Jira site URL and email).
   2. harness-secret set GITHUB_PERSONAL_ACCESS_TOKEN
   3. harness-secret set JIRA_API_TOKEN
-  4. omnigent setup            # pick your model credential
+  4. Sign in to both subscriptions:  claude auth login  and  codex login
+     then pick defaults with:        omnigent setup
   5. $REPO_DIR/scripts/doctor.sh
 EOF

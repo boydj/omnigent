@@ -34,8 +34,22 @@ check_version github-mcp-server "$GITHUB_MCP_VERSION" \
 for tool in harness-secret mcp-github mcp-jira; do
   if command -v "$tool" >/dev/null 2>&1; then pass "$tool on PATH"; else fail "$tool not on PATH"; fi
 done
-if command -v claude >/dev/null 2>&1; then pass "claude $(claude --version 2>/dev/null | head -1)"
-else fail "Claude Code CLI (claude) not found"; fi
+check_version codex "$CODEX_VERSION" \
+  "$(codex --version 2>/dev/null | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+claude_version="$(claude --version 2>/dev/null | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+' | head -1)"
+if [ -z "$claude_version" ]; then
+  fail "Claude Code CLI (claude) not found"
+elif [ "$(printf '%s\n%s\n' "$CLAUDE_MIN_VERSION" "$claude_version" | sort -V | head -1)" = "$CLAUDE_MIN_VERSION" ]; then
+  pass "claude $claude_version (>= $CLAUDE_MIN_VERSION)"
+else
+  fail "claude $claude_version is older than $CLAUDE_MIN_VERSION: run claude update"
+fi
+
+echo "Subscriptions"
+if claude auth status >/dev/null 2>&1; then pass "Claude Code signed in"
+else fail "Claude Code not signed in: claude auth login"; fi
+if codex login status >/dev/null 2>&1; then pass "Codex signed in ($(codex login status 2>&1 | head -1))"
+else fail "Codex not signed in: codex login"; fi
 
 echo "Settings and secrets (backend: $(harness-secret backend 2>/dev/null || echo '?'))"
 if [ -f "$CONFIG_DIR/harness.env" ]; then pass "$CONFIG_DIR/harness.env exists"
@@ -73,9 +87,19 @@ if [ -f "$CONFIG_DIR/harness.env" ] && token="$(harness-secret get JIRA_API_TOKE
   ) || fails=$((fails + 1))
 fi
 
-echo "Omnigent"
-if omnigent agent list 2>/dev/null | grep -Eq '(^|[[:space:]])dev([[:space:]]|$)'; then pass "dev agent installed"
-else fail "dev agent not installed: omnigent agent add $REPO_DIR/agents/dev"; info "(needs the local server; 'omnigent start' launches it)"; fi
+echo "Agents"
+if sync_out="$("$REPO_DIR/scripts/sync-shared.sh" --check 2>&1)"; then pass "agents/ copies match shared/"
+else fail "agents/ out of sync with shared/: ./scripts/sync-shared.sh"; printf '%s\n' "$sync_out" | sed 's/^/       /'; fi
+omni_python="$(dirname "$(readlink -f "$(command -v omnigent)")")/python"
+if val_out="$("$omni_python" "$REPO_DIR/scripts/validate-agents.py" 2>&1)"; then pass "agent specs valid (Omnigent parser)"
+else fail "agent specs invalid"; fi
+printf '%s\n' "$val_out" | sed 's/^/   /'
+agent_list="$(omnigent agent list 2>/dev/null)"
+for agent_dir in "$REPO_DIR"/agents/*/; do
+  agent="$(basename "$agent_dir")"
+  if printf '%s\n' "$agent_list" | grep -Eq "(^|[[:space:]])${agent}([[:space:]]|$)"; then pass "$agent installed in Omnigent"
+  else fail "$agent not installed: omnigent agent add $REPO_DIR/agents/$agent"; info "(needs the local server; 'omnigent start' launches it)"; fi
+done
 
 echo
 if [ "$fails" -eq 0 ]; then echo "All checks passed."; else echo "$fails check(s) failed."; fi

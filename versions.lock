@@ -8,6 +8,14 @@
 # Omnigent meta-harness (PyPI: omnigent). Requires Python 3.12+.
 OMNIGENT_VERSION=0.21.0
 
+# Codex CLI (npm: @openai/codex), used by the codex-native harness with a
+# ChatGPT/Codex subscription. Omnigent 0.21.0 needs >= 0.137.0.
+CODEX_VERSION=0.167.2
+
+# Claude Code is NOT pinned: it updates itself. Omnigent 0.21.0 needs >= 2.1.161;
+# doctor.sh checks that floor.
+CLAUDE_MIN_VERSION=2.1.161
+
 # Jira Cloud MCP server (PyPI: mcp-atlassian, github.com/sooperset/mcp-atlassian).
 MCP_ATLASSIAN_VERSION=0.24.3
 

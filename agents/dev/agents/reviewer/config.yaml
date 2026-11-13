@@ -1,0 +1,33 @@
+spec_version: 1
+name: reviewer
+description: >-
+  Codex reviewer for the dev agent: reads a diff snapshot and reports
+  blocking / non-blocking issues. Never edits.
+
+# Codex in its own terminal, signed in with your ChatGPT/Codex subscription
+# (`codex login`, or `omnigent setup`). No model pinned.
+executor:
+  type: omnigent
+  config:
+    harness: codex-native
+    # Omnigent launches headless Codex sub-agents with approvals and the
+    # sandbox BYPASSED unless this is false. A reviewer only reads, so keep
+    # Codex's own sandbox and approval prompts on.
+    yolo: false
+
+os_env:
+  type: caller_process
+  cwd: .
+
+instructions: instructions.md
+
+guardrails:
+  ask_timeout: 3600
+  policies:
+    # No GitHub writes at all from the reviewer (empty write_repos).
+    github_readonly:
+      type: function
+      handler: omnigent.policies.builtins.github.github_policy
+      factory_params:
+        read_all: true
+        write_repos: []
