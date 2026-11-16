@@ -1,4 +1,4 @@
-# harness
+# omnigent
 
 My AI-assisted development setup, as code: [Omnigent](https://omnigent.ai)
 driving Claude Code and Codex (both on their subscriptions), with **GitHub**
