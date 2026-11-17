@@ -92,9 +92,23 @@ EOF
 
 echo "Live API checks (does the token actually work?)"
 if token="$(harness-secret get GITHUB_PERSONAL_ACCESS_TOKEN 2>/dev/null)"; then
-  login="$(curl -fsS -H "Authorization: Bearer $token" https://api.github.com/user 2>/dev/null \
-    | python3 -c 'import json,sys; print(json.load(sys.stdin)["login"])' 2>/dev/null)"
-  if [ -n "$login" ]; then pass "GitHub token works (user: $login)"; else fail "GitHub token rejected by api.github.com"; fi
+  # shellcheck disable=SC1091
+  ( if [ -f "$CONFIG_DIR/harness.env" ]; then set -a; . "$CONFIG_DIR/harness.env"; set +a; fi
+    # Same API URL rules as github-mcp-server: ghe.com -> api.<host>, GHES -> <host>/api/v3.
+    host="${GITHUB_HOST:-}"; host="${host%/}"
+    case "$host" in
+      "" | https://github.com | github.com) api=https://api.github.com ;;
+      *) case "$host" in http://* | https://*) ;; *) host="https://$host" ;; esac
+         case "$host" in
+           *.ghe.com) api="${host%%://*}://api.${host#*://}" ;;
+           *) api="$host/api/v3" ;;
+         esac ;;
+    esac
+    login="$(curl -fsS -H "Authorization: Bearer $token" "$api/user" 2>/dev/null \
+      | python3 -c 'import json,sys; print(json.load(sys.stdin)["login"])' 2>/dev/null)"
+    if [ -n "$login" ]; then printf '  \033[32mPASS\033[0m GitHub token works (user: %s at %s)\n' "$login" "$api"
+    else printf '  \033[31mFAIL\033[0m GitHub token rejected by %s\n' "$api"; exit 1; fi
+  ) || fails=$((fails + 1))
 fi
 if [ -f "$CONFIG_DIR/harness.env" ] && token="$(harness-secret get JIRA_API_TOKEN 2>/dev/null)"; then
   # shellcheck disable=SC1091
